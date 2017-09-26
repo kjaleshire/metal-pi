@@ -5,12 +5,12 @@ mod gpio;
 
 use gpio::Gpio;
 
-struct Pi {
+pub struct Pi {
     gpio: Gpio,
 }
 
 impl Pi {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Pi{
             gpio: Gpio::new(),
         }
