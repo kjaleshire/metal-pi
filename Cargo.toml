@@ -1,5 +1,5 @@
 [package]
-name = "pi-metal-gpio"
+name = "metal-pi"
 version = "0.1.0"
 authors = ["Kyle Aleshire <kjaleshire@gmail.com>"]
 
