@@ -1,4 +1,4 @@
-#![feature(core_intrinsics, lang_items)]
+#![feature(core_intrinsics)]
 #![no_std]
 
 mod gpio;
@@ -15,12 +15,4 @@ impl Pi {
             gpio: Gpio::new(),
         }
     }
-}
-
-#[lang = "eh_personality"]
-extern fn eh_personality() {}
-
-#[lang = "panic_fmt"]
-extern fn panic_fmt() -> ! {
-    loop {}
 }
