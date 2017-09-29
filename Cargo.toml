@@ -2,7 +2,3 @@
 name = "metalpi"
 version = "0.1.2"
 authors = ["Kyle Aleshire <kjaleshire@gmail.com>"]
-
-[lib]
-name = "metalpi"
-crate-type = ["staticlib"]
