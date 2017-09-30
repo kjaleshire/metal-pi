@@ -7,7 +7,7 @@ mod register;
 use gpio::Gpio;
 
 pub struct Pi {
-    gpio: Gpio,
+    pub gpio: Gpio,
 }
 
 impl Pi {

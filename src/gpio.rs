@@ -2,10 +2,6 @@ use core::mem;
 
 use register::{Register, RegisterSetting};
 
-pub enum Error {
-    OutOfRange(&'static str)
-}
-
 #[derive(Copy, Clone)]
 pub enum PinFunction {
     Input =  0b000,
@@ -26,7 +22,6 @@ impl RegisterSetting for PinFunction {
 pub struct Gpio {
     gpio_base: usize,
 
-    pin_count: usize,
     fsel_registers: usize,
     set_registers: usize,
     clr_registers: usize,
@@ -39,7 +34,6 @@ impl Gpio {
         Self {
             gpio_base: gpio_address_base,
 
-            pin_count: 59,
             fsel_registers: 6,
             set_registers: 2,
             clr_registers: 2,
