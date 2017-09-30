@@ -1,3 +1,5 @@
+use core::intrinsics::{volatile_store, volatile_load};
+
 pub trait RegisterSetting {
     fn value(&self) -> usize;
     fn mask(&self) -> usize;
@@ -12,7 +14,7 @@ pub trait Register {
         let mask = setting.mask() >> offset;
         current_value &= !mask;
 
-        let new_value = value >> offset;
+        let new_value = setting.value() >> offset;
 
         self.write(current_value | new_value);
     }
