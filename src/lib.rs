@@ -2,6 +2,7 @@
 #![no_std]
 
 mod gpio;
+mod register;
 
 use gpio::Gpio;
 
