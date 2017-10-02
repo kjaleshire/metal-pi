@@ -1,9 +1,7 @@
-use core::mem;
-
 use register::{Register, RegisterSetting};
 
 #[derive(Copy, Clone)]
-pub enum PinFunction {
+pub enum PinFn {
     Input =  0b000,
     Output = 0b001,
     AltFn0 = 0b100,
@@ -14,75 +12,54 @@ pub enum PinFunction {
     AltFn5 = 0b010,
 }
 
-impl RegisterSetting for PinFunction {
+impl RegisterSetting for PinFn {
     fn value(&self) -> usize { *self as usize }
     fn mask(&self) -> usize { 0b111 }
 }
 
-pub struct Gpio {
-    gpio_base: usize,
+pub fn gpio_address_base() -> usize { 0x3F00_0000 }
+pub fn fsel_registers() -> usize { 6 }
+pub fn set_registers() -> usize { 2 }
+pub fn clr_registers() -> usize { 2 }
 
-    fsel_registers: usize,
-    set_registers: usize,
-    clr_registers: usize,
+pub fn select_fn(pin: usize, function: PinFn) {
+    let register_num = pin / FselRegister::pins_per_register();
+    let register = FselRegister::new(gpio_address_base(), register_num);
+
+    let offset = pin % FselRegister::pins_per_register();
+    register.select_fn(offset, function);
 }
 
-impl Gpio {
-    pub fn new() -> Self {
-        let gpio_address_base = 0x3F00_0000;
+pub fn set_pin(pin: usize) {
+    let register_num = pin / SetRegister::pins_per_register();
+    let register = SetRegister::new(gpio_address_base(), register_num);
 
-        Self {
-            gpio_base: gpio_address_base,
-
-            fsel_registers: 6,
-            set_registers: 2,
-            clr_registers: 2,
-        }
-    }
-
-    pub fn select_function(&self, pin: usize, function: PinFunction) {
-        let register_num = pin / self.fsel_registers;
-        let register_offset = register_num * mem::size_of::<usize>();
-        let register = FselRegister::new(self.gpio_base, register_offset);
-
-        let offset = pin % self.fsel_registers;
-        register.select_function(offset, function);
-    }
-
-    pub fn set_pin(&self, pin: usize) {
-        let register_num = pin / self.set_registers;
-        let register_offset = register_num * mem::size_of::<usize>();
-        let register = SetRegister::new(self.gpio_base, register_offset);
-
-        let offset = pin % self.set_registers;
-        register.set_pin(offset);
-    }
-
-    pub fn clear_pin(&self, pin: usize) {
-        let register_num = pin / self.clr_registers;
-        let register_offset = register_num * mem::size_of::<usize>();
-        let register = ClrRegister::new(self.gpio_base, register_offset);
-
-        let offset = pin % self.clr_registers;
-        register.clear_pin(offset);
-    }
+    let offset = pin % SetRegister::pins_per_register();
+    register.set_pin(offset);
 }
 
-struct FselRegister {
+pub fn clear_pin(pin: usize) {
+    let register_num = pin / ClrRegister::pins_per_register();
+    let register = ClrRegister::new(gpio_address_base(), register_num);
+
+    let offset = pin % ClrRegister::pins_per_register();
+    register.clear_pin(offset);
+}
+
+
+pub struct FselRegister {
     address: usize
 }
 
 impl FselRegister {
-    fn new(gpio_base: usize, register_offset: usize) -> Self {
-        let gpio_fsel_offset = 0x20_0000;
-
-        let address = gpio_base + gpio_fsel_offset + register_offset;
+    pub fn new(gpio_base: usize, register_number: usize) -> Self {
+        let address = gpio_base + Self::bank_offset() + Self::register_offset(register_number);
         assert!(address & gpio_base == gpio_base);
 
         Self{address: address}
     }
 
-    fn select_function(&self, pin: usize, function: PinFunction) {
+    pub fn select_fn(&self, pin: usize, function: PinFn) {
         let shift = pin * 3;
         self.write_value_at_offset(function, shift);
     }
@@ -92,31 +69,33 @@ impl Register for FselRegister {
     fn address(&self) -> usize {
         self.address
     }
+
+    fn pins_per_register() -> usize { 10 }
+
+    fn bank_offset() -> usize { 0x20_0000 }
 }
 
-struct BitSetting {}
+pub struct BitSetting {}
 
 impl RegisterSetting for BitSetting {
     fn value(&self) -> usize { 0b1 }
     fn mask(&self) -> usize { 0b1 }
 }
 
-struct SetRegister {
+pub struct SetRegister {
     address: usize
 }
 
 impl SetRegister {
-    fn new(gpio_base: usize, register_offset: usize) -> Self {
-        let gpio_set_offset = 0x20_001C;
-
-        let address = gpio_base + gpio_set_offset + register_offset;
+    pub fn new(gpio_base: usize, register_number: usize) -> Self {
+        let address = gpio_base + Self::bank_offset() + Self::register_offset(register_number);
         assert!(address & gpio_base == gpio_base);
 
         Self{address: address}
     }
 
-    fn set_pin(&self, pin: usize) {
-        self.write_value_at_offset(BitSetting{}, pin);
+    pub fn set_pin(&self, pin: usize) {
+        self.write(0b1 << pin);
     }
 }
 
@@ -124,6 +103,10 @@ impl Register for SetRegister {
     fn address(&self) -> usize {
         self.address
     }
+
+    fn pins_per_register() -> usize { 32 }
+
+    fn bank_offset() -> usize { 0x20_001C }
 }
 
 struct ClrRegister {
@@ -131,17 +114,15 @@ struct ClrRegister {
 }
 
 impl ClrRegister {
-    fn new(gpio_base: usize, register_offset: usize) -> Self {
-        let gpio_clr_offset = 0x20_0028;
-
-        let address = gpio_base + gpio_clr_offset + register_offset;
+    pub fn new(gpio_base: usize, register_number: usize) -> Self {
+        let address = gpio_base + Self::bank_offset() + Self::register_offset(register_number);
         assert!(address & gpio_base == gpio_base);
 
         Self{address: address}
     }
 
-    fn clear_pin(&self, pin: usize) {
-        self.write_value_at_offset(BitSetting{}, pin);
+    pub fn clear_pin(&self, pin: usize) {
+        self.write(0b1 << pin);
     }
 }
 
@@ -149,4 +130,8 @@ impl Register for ClrRegister {
     fn address(&self) -> usize {
         self.address
     }
+
+    fn pins_per_register() -> usize { 32 }
+
+    fn bank_offset() -> usize { 0x20_0028 }
 }

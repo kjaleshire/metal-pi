@@ -1,19 +1,5 @@
-#![feature(core_intrinsics)]
+#![feature(core_intrinsics, lang_items)]
 #![no_std]
 
 pub mod gpio;
-mod register;
-
-use gpio::Gpio;
-
-pub struct Pi {
-    pub gpio: Gpio,
-}
-
-impl Pi {
-    pub fn new() -> Self {
-        Pi{
-            gpio: Gpio::new(),
-        }
-    }
-}
+pub mod register;
